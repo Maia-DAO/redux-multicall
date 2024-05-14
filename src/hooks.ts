@@ -1,13 +1,13 @@
-import { Contract } from '@ethersproject/contracts'
 import { Interface } from '@ethersproject/abi'
+import { Contract } from '@ethersproject/contracts'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { batch, useDispatch, useSelector } from 'react-redux'
-import { INVALID_CALL_STATE, INVALID_RESULT, DEFAULT_BLOCKS_PER_FETCH } from './constants'
+import { DEFAULT_BLOCKS_PER_FETCH, INVALID_CALL_STATE, INVALID_RESULT } from './constants'
 import type { MulticallContext } from './context'
 import type { Call, CallResult, CallState, ListenerOptions, ListenerOptionsWithGas, WithMulticallState } from './types'
 import { callKeysToCalls, callsToCallKeys, toCallKey } from './utils/callKeys'
 import { toCallState, useCallStates } from './utils/callState'
-import { isValidMethodArgs, MethodArg } from './validation'
+import { MethodArg, isValidMethodArgs } from './validation'
 
 type OptionalMethodInputs = Array<MethodArg | MethodArg[] | undefined> | undefined
 
@@ -167,6 +167,47 @@ function useMultichainCallsDataSubscription(
       }, {} as Record<number, CallResult[]>),
     [callResults, chainToCalls]
   )
+}
+
+// formats many args to a single contract function on multiple addresses, with the function name and inputs specified
+export function useMultipleContractMultipleData(
+  context: MulticallContext,
+  chainId: number | undefined,
+  latestBlockNumber: number | undefined,
+  contractInterface: Interface,
+  methodName: string,
+  addresses: string[],
+  callInputs: OptionalMethodInputs[],
+  options?: Partial<ListenerOptionsWithGas>
+): CallState[] {
+  const { gasRequired } = options ?? {}
+
+  // Create ethers function fragment
+  const fragment = useMemo(() => contractInterface?.getFunction(methodName), [contractInterface, methodName])
+
+  // Get encoded call data. Note can't use useCallData below b.c. this is  for a list of CallInputs
+  const callDatas = useMemo(() => {
+    if (!fragment) return []
+    return callInputs.map<string | undefined>((callInput) =>
+      isValidMethodArgs(callInput) ? contractInterface.encodeFunctionData(fragment, callInput) : undefined
+    )
+  }, [callInputs, contractInterface, fragment])
+
+  // Create call objects
+  const calls = useMemo(() => {
+    return callDatas.map<Call | undefined>((callData, index) => {
+      if (!callData || !addresses[index]) return undefined
+      return {
+        address: addresses[index],
+        callData,
+        gasRequired,
+      }
+    })
+  }, [callDatas, gasRequired])
+
+  // Subscribe to call data
+  const results = useCallsDataSubscription(context, chainId, calls, options as ListenerOptions)
+  return useCallStates(results, contractInterface, fragment, latestBlockNumber)
 }
 
 // formats many calls to a single function on a single contract, with the function name and inputs specified

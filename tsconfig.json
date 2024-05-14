@@ -1,8 +1,9 @@
 {
-  "include": ["src", "integration-tests"],
+  "include": ["src"],
   "compilerOptions": {
     "alwaysStrict": true,
     "declaration": true,
+    "declarationMap": true,
     "esModuleInterop": true,
     "importHelpers": true,
     "jsx": "react",
@@ -20,6 +21,9 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "es2018"
+    "target": "es2018",
+
+    "composite": true,
+    "rootDir": "./src"
   }
 }

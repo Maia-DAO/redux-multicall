@@ -2,6 +2,7 @@ import type { MulticallContext } from './context'
 import {
   useMultiChainMultiContractSingleData as _useMultiChainMultiContractSingleData,
   useMultiChainSingleContractSingleData as _useMultiChainSingleContractSingleData,
+  useMultipleContractMultipleData as _useMultipleContractMultipleData,
   useMultipleContractSingleData as _useMultipleContractSingleData,
   useSingleCallResult as _useSingleCallResult,
   useSingleContractMultipleData as _useSingleContractMultipleData,
@@ -29,6 +30,8 @@ export function createMulticall(options?: MulticallOptions) {
   const { actions, reducer } = slice
   const context: MulticallContext = { reducerPath, actions }
 
+  const useMultipleContractMultipleData = (...args: ParamsWithoutContext<typeof _useMultipleContractMultipleData>) =>
+    _useMultipleContractMultipleData(context, ...args)
   const useMultipleContractSingleData = (...args: ParamsWithoutContext<typeof _useMultipleContractSingleData>) =>
     _useMultipleContractSingleData(context, ...args)
   const useSingleContractMultipleData = (...args: ParamsWithoutContext<typeof _useSingleContractMultipleData>) =>
@@ -44,6 +47,7 @@ export function createMulticall(options?: MulticallOptions) {
     ...args: ParamsWithoutContext<typeof _useMultiChainSingleContractSingleData>
   ) => _useMultiChainSingleContractSingleData(context, ...args)
   const hooks = {
+    useMultipleContractMultipleData,
     useMultipleContractSingleData,
     useSingleContractMultipleData,
     useSingleContractWithCallData,
